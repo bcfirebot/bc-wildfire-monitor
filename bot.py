@@ -11,9 +11,10 @@ MEMORY_FILE = "known_fires.txt"
 
 # 🔐 SECURE ENVIRONMENT LOADING
 # Pulls every credential out of the hidden GitHub Secrets vault at execution time
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL')
-SENDER_PASSWORD = os.environ.get('EMAIL_PASSWORD')
-RECEIVER_DATA = os.environ.get('RECEIVER_EMAILS')
+# .strip() guarantees no hidden trailing spaces or newlines (\n) leak into headers
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', '').strip()
+SENDER_PASSWORD = os.environ.get('EMAIL_PASSWORD', '').strip()
+RECEIVER_DATA = os.environ.get('RECEIVER_EMAILS', '').strip()
 
 # Quick fail-safe guard to ensure the workflow stops immediately if configurations are blank
 if not all([SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_DATA]):
@@ -128,22 +129,4 @@ def check_fires():
             # Filter logic matching Southeast 'N' entries that are active
             if fire_id.upper().startswith('N') and status.lower() != "out":
                 if fire_id not in known_fires:
-                    print(f"Tracking Event: Found new local anomaly [{fire_id}]")
-                    
-                    # Fire the HTML Email Engine
-                    send_email_alert(fire_id, name, status, size)
-                    new_fires_detected.append(fire_id)
-
-        if new_fires_detected:
-            save_new_fires(new_fires_detected)
-            print(f"Data sync complete. Logged {len(new_fires_detected)} occurrences.")
-        else:
-            print("System Scan Complete: No state shifts or additions found.")
-
-    except Exception as e:
-        print(f"Critical query fault: {e}")
-
-
-# Process Execution
-check_fires()
-check_fires()
+                    print(f

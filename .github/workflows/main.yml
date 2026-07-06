@@ -2,7 +2,7 @@ name: 24-7 BC Wildfire Monitor
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Automatically fires at the top of every hour
+    - cron: '*/15 * * * *'  # Automatically fires every 15 minutes
   workflow_dispatch:     # Enables manual override testing
 
 jobs:

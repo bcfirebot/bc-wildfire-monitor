@@ -1,4 +1,5 @@
 import os
+import sys
 import smtplib
 import requests
 from email.mime.multipart import MIMEMultipart
@@ -8,16 +9,20 @@ from email.mime.text import MIMEText
 URL = "https://services6.arcgis.com/ubm4tcTYICKBpist/arcgis/rest/services/BCWS_ActiveFires_PublicView/FeatureServer/0/query?where=1%3D1&outFields=*&f=json"
 MEMORY_FILE = "known_fires.txt"
 
-# 🔴 CONFIGURATION
+# 🔐 SECURE ENVIRONMENT LOADING
+# Pulls every credential out of the hidden GitHub Secrets vault at execution time
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL')
-SENDER_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")  # Pulled securely from GitHub Repository Secrets
+SENDER_PASSWORD = os.environ.get('EMAIL_PASSWORD')
+RECEIVER_DATA = os.environ.get('RECEIVER_EMAILS')
 
-# All three target inboxes packed cleanly into a delivery list
-RECEIVER_EMAILS = [
-    "cranbrook1@perimeter-solutions.com",
-    "cranbrook2@perimeter-solutions.com",
-    "cranbrook3@perimeter-solutions.com"
-]
+# Quick fail-safe guard to ensure the workflow stops immediately if configurations are blank
+if not all([SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_DATA]):
+    print("❌ Critical configuration fault: Missing values in GitHub Secrets vault.")
+    sys.exit(1)
+
+# Dynamically splits the comma-separated string from your vault back into a clean list
+RECEIVER_EMAILS = [email.strip() for email in RECEIVER_DATA.split(',')]
+
 
 def send_email_alert(fire_id, name, status, size):
     """Sends a professionally formatted HTML email notification to multiple recipients."""
@@ -89,16 +94,19 @@ def send_email_alert(fire_id, name, status, size):
     except Exception as e:
         print(f"❌ Transmission pipeline breakdown: {e}")
 
+
 def load_known_fires():
     if not os.path.exists(MEMORY_FILE):
         return set()
     with open(MEMORY_FILE, "r") as f:
         return set(line.strip() for line in f)
 
+
 def save_new_fires(new_fires):
     with open(MEMORY_FILE, "a") as f:
         for fire_id in new_fires:
             f.write(f"{fire_id}\n")
+
 
 def check_fires():
     print("Initiating scans for active Southeast Fire Centre anomalies...")
@@ -135,5 +143,7 @@ def check_fires():
     except Exception as e:
         print(f"Critical query fault: {e}")
 
+
 # Process Execution
+check_fires()
 check_fires()

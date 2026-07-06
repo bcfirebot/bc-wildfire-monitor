@@ -10,18 +10,22 @@ URL = "https://services6.arcgis.com/ubm4tcTYICKBpist/arcgis/rest/services/BCWS_A
 MEMORY_FILE = "known_fires.txt"
 
 # 🔐 SECURE ENVIRONMENT LOADING
-# Pulls every credential out of the hidden GitHub Secrets vault at execution time
-# .strip() guarantees no hidden trailing spaces or newlines (\n) leak into headers
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', '').strip()
-SENDER_PASSWORD = os.environ.get('EMAIL_PASSWORD', '').strip()
-RECEIVER_DATA = os.environ.get('RECEIVER_EMAILS', '').strip()
+# Pulls credentials safely out of the hidden vault first
+RAW_SENDER = os.environ.get('SENDER_EMAIL')
+RAW_PASSWORD = os.environ.get('EMAIL_PASSWORD')
+RAW_RECEIVERS = os.environ.get('RECEIVER_EMAILS')
 
-# Quick fail-safe guard to ensure the workflow stops immediately if configurations are blank
-if not all([SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_DATA]):
+# Guard fail-safe: Ensure nothing is blank before processing strings
+if not all([RAW_SENDER, RAW_PASSWORD, RAW_RECEIVERS]):
     print("❌ Critical configuration fault: Missing values in GitHub Secrets vault.")
     sys.exit(1)
 
-# Dynamically splits the comma-separated string from your vault back into a clean list
+# Safe string cleaning to strip any accidental hidden newlines (\n) or spaces
+SENDER_EMAIL = RAW_SENDER.strip()
+SENDER_PASSWORD = RAW_PASSWORD.strip()
+RECEIVER_DATA = RAW_RECEIVERS.strip()
+
+# Dynamically splits the comma-separated string back into a clean list
 RECEIVER_EMAILS = [email.strip() for email in RECEIVER_DATA.split(',')]
 
 
@@ -32,7 +36,7 @@ def send_email_alert(fire_id, name, status, size):
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"⚠️ WILDFIRE ALERT: New Incident Detected [{fire_id}]"
     msg["From"] = f"BC Wildfire Monitor <{SENDER_EMAIL}>"
-    msg["To"] = ", ".join(RECEIVER_EMAILS)  # Shows all recipients on the email header cleanly
+    msg["To"] = ", ".join(RECEIVER_EMAILS)
 
     # Professional HTML Body Content
     html_content = f"""
@@ -89,7 +93,6 @@ def send_email_alert(fire_id, name, status, size):
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            # Sends out to the full array of addresses simultaneously
             server.sendmail(SENDER_EMAIL, RECEIVER_EMAILS, msg.as_string())
         print(f"✉️ Professional alert successfully transmitted to all {len(RECEIVER_EMAILS)} nodes!")
     except Exception as e:
@@ -129,4 +132,21 @@ def check_fires():
             # Filter logic matching Southeast 'N' entries that are active
             if fire_id.upper().startswith('N') and status.lower() != "out":
                 if fire_id not in known_fires:
-                    print(f
+                    print(f"Tracking Event: Found new local anomaly [{fire_id}]")
+                    
+                    # Fire the HTML Email Engine
+                    send_email_alert(fire_id, name, status, size)
+                    new_fires_detected.append(fire_id)
+
+        if new_fires_detected:
+            save_new_fires(new_fires_detected)
+            print(f"Data sync complete. Logged {len(new_fires_detected)} occurrences.")
+        else:
+            print("System Scan Complete: No state shifts or additions found.")
+
+    except Exception as e:
+        print(f"Critical query fault: {e}")
+
+
+if __name__ == "__main__":
+    check_fires()

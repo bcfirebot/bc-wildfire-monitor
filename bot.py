@@ -11,16 +11,22 @@ MEMORY_FILE = "known_fires.txt"
 # 🔴 CONFIGURATION
 SENDER_EMAIL = "bcfirebot@gmail.com"
 SENDER_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")  # Pulled securely from GitHub Repository Secrets
-RECEIVER_EMAIL = "cranbrook1@perimeter-solutions.com"
+
+# All three target inboxes packed cleanly into a delivery list
+RECEIVER_EMAILS = [
+    "cranbrook1@perimeter-solutions.com",
+    "cranbrook2@perimeter-solutions.com",
+    "cranbrook3@perimeter-solutions.com"
+]
 
 def send_email_alert(fire_id, name, status, size):
-    """Sends a professionally formatted HTML email notification."""
+    """Sends a professionally formatted HTML email notification to multiple recipients."""
     
     # Construct the container
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"⚠️ WILDFIRE ALERT: New Incident Detected [{fire_id}]"
     msg["From"] = f"BC Wildfire Monitor <{SENDER_EMAIL}>"
-    msg["To"] = RECEIVER_EMAIL
+    msg["To"] = ", ".join(RECEIVER_EMAILS)  # Shows all recipients on the email header cleanly
 
     # Professional HTML Body Content
     html_content = f"""
@@ -77,8 +83,9 @@ def send_email_alert(fire_id, name, status, size):
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
-        print(f"✉️ Professional alert successfully transmitted to {RECEIVER_EMAIL}!")
+            # Sends out to the full array of addresses simultaneously
+            server.sendmail(SENDER_EMAIL, RECEIVER_EMAILS, msg.as_string())
+        print(f"✉️ Professional alert successfully transmitted to all {len(RECEIVER_EMAILS)} nodes!")
     except Exception as e:
         print(f"❌ Transmission pipeline breakdown: {e}")
 

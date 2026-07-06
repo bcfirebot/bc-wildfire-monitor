@@ -30,7 +30,5 @@ jobs:
         run: |
           git config --global user.name "cron-bot"
           git config --global user.email "cron-bot@users.noreply.github.com"
-          git pull --rebase
           git add known_fires.txt
-          git diff-index --quiet HEAD || git commit -m "Automated log update [skip ci]"
-          git push
+          git diff-index --quiet HEAD || (git commit -m "Automated log update [skip ci]" && git pull --ff-only && git push)

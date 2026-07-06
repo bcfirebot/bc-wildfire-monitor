@@ -1,0 +1,34 @@
+name: 24-7 BC Wildfire Monitor
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Automatically fires at the top of every hour
+  workflow_dispatch:     # Enables manual override testing
+
+jobs:
+  run-monitor:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install Dependencies
+      run: pip install requests
+
+    - name: Execute Live Wildfire Scan
+      env:
+        GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      run: python bot.py
+
+    - name: Save Memory State Changes
+      run: |
+        git config --global user.name "Wildfire Bot"
+        git config --global user.email "bot@github.com"
+        git add known_fires.txt
+        git commit -m "Sync known fires log [Automated]" || exit 0
+        git push

@@ -9,7 +9,7 @@ URL = "https://services6.arcgis.com/ubm4tcTYICKBpist/arcgis/rest/services/BCWS_A
 MEMORY_FILE = "known_fires.txt"
 
 # 🔴 CONFIGURATION
-SENDER_EMAIL = "bcfirebot@gmail.com"
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL')
 SENDER_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")  # Pulled securely from GitHub Repository Secrets
 
 # All three target inboxes packed cleanly into a delivery list

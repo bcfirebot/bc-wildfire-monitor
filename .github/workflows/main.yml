@@ -1,36 +1,36 @@
-name: 24-7 BC Wildfire Monitor
+name: Wildfire Monitor Trigger
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'  # Automatically fires every 15 minutes
-  workflow_dispatch:       # Enables manual override testing
+  workflow_dispatch:
 
 jobs:
   run-monitor:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write      # Explicitly forces GitHub to allow file updates
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
+      - name: Set Up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-    - name: Install Dependencies
-      run: pip install requests
+      - name: Install Dependencies
+        run: |
+          pip install requests
 
-    - name: Execute Live Wildfire Scan
-      env:
-        GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-      run: python bot.py
+      - name: Execute Monitor Script
+        env:
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          RECEIVER_EMAILS: ${{ secrets.RECEIVER_EMAILS }}
+        run: python bot.py
 
-    - name: Save Memory State Changes
-      run: |
-        git config --global user.name "Wildfire Bot"
-        git config --global user.email "bot@github.com"
-        git add known_fires.txt
-        git commit -m "Sync known fires log [Automated]" || exit 0
-        git push
+      - name: Save Log Changes
+        run: |
+          git config --global user.name "cron-bot"
+          git config --global user.email "cron-bot@users.noreply.github.com"
+          git pull --rebase
+          git add known_fires.txt
+          git diff-index --quiet HEAD || git commit -m "Automated log update [skip ci]"
+          git push
